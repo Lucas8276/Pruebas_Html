@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mapa Personalizado</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.3/dist/leaflet.css" />
+    <style>
+        #map {
+            height: 500px;
+            margin-bottom: 10px;
+        }
+    </style>
+</head>
+<body>
+    <div id="map"></div>
+    <button id="clearMarkers">Eliminar Marcadores</button>
+
+    <script src="https://unpkg.com/leaflet@1.9.3/dist/leaflet.js"></script>
+    <script>
+        // Obtener la última vista del mapa desde el localStorage
+        var savedMapState = JSON.parse(localStorage.getItem('mapState'));
+        var initialLat = 51.505;
+        var initialLng = -0.09;
+        var initialZoom = 13;
+
+        if (savedMapState) {
+            initialLat = savedMapState.lat;
+            initialLng = savedMapState.lng;
+            initialZoom = savedMapState.zoom;
+        }
+
+        // Inicializa el mapa con la última vista guardada
+        var map = L.map('map').setView([initialLat, initialLng], initialZoom);
+
+        // Agrega la capa de OpenStreetMap
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+        }).addTo(map);
+
+        // Definir el ícono personalizado
+        var customIcon = L.icon({
+            iconUrl: 'deadpool.png', // Usa una imagen PNG con fondo transparente
+            iconSize: [64, 64], // Tamaño del ícono
+            iconAnchor: [32, 64], // Punto del ícono en la posición del marcador
+            popupAnchor: [0, -64] // Punto desde el cual se abrirá la ventana emergente
+        });
+
+        // Array para almacenar las referencias de los marcadores
+        var markers = [];
+
+        // Función para cargar los marcadores almacenados en localStorage
+        function loadMarkers() {
+            var storedMarkers = JSON.parse(localStorage.getItem('markers')) || [];
+            storedMarkers.forEach(function(coords) {
+                var marker = L.marker(coords, { icon: customIcon }).addTo(map);
+                markers.push(marker); // Añadir marcador al array
+            });
+        }
+
+        // Cargar los marcadores al cargar la página
+        loadMarkers();
+
+        // Evento para agregar un marcador con clic izquierdo
+        map.on('click', function(e) {
+            var marker = L.marker([e.latlng.lat, e.latlng.lng], { icon: customIcon }).addTo(map);
+            markers.push(marker); // Almacenar referencia al marcador en el array
+
+            // Almacena el marcador en localStorage
+            var storedMarkers = JSON.parse(localStorage.getItem('markers')) || [];
+            storedMarkers.push([e.latlng.lat, e.latlng.lng]);
+            localStorage.setItem('markers', JSON.stringify(storedMarkers));
+        });
+
+        // Evento para eliminar los marcadores al hacer clic en el botón
+        document.getElementById('clearMarkers').addEventListener('click', function() {
+            // Eliminar cada marcador del mapa
+            markers.forEach(function(marker) {
+                map.removeLayer(marker);
+            });
+
+            // Vaciar el array de marcadores
+            markers = [];
+
+            // Eliminar los marcadores del localStorage
+            localStorage.removeItem('markers');
+        });
+
+        // Evento para almacenar la vista del mapa (coordenadas y zoom) en localStorage
+        map.on('moveend', function() {
+            var center = map.getCenter();
+            var zoom = map.getZoom();
+            var mapState = {
+                lat: center.lat,
+                lng: center.lng,
+                zoom: zoom
+            };
+            localStorage.setItem('mapState', JSON.stringify(mapState));
+        });
+    </script>
+</body>
+</html>
